@@ -23,7 +23,7 @@
 <meta name="author" content="Victor Loegler, Haploteam, Université de Strasbourg, CNRS, GMGM UMR 7156, Strasbourg, France" />
 
 
-<meta name="date" content="2024-07-16" />
+<meta name="date" content="2024-07-19" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -159,7 +159,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li class="chapter" data-level="3.1" data-path="variant-filtering.html"><a href="variant-filtering.html#quality-filtering"><i class="fa fa-check"></i><b>3.1</b> Quality filtering</a></li>
 <li class="chapter" data-level="3.2" data-path="variant-filtering.html"><a href="variant-filtering.html#missing-genotype-filtering"><i class="fa fa-check"></i><b>3.2</b> Missing genotype filtering</a></li>
 <li class="chapter" data-level="3.3" data-path="variant-filtering.html"><a href="variant-filtering.html#filter-on-excess-of-heterozygosity"><i class="fa fa-check"></i><b>3.3</b> Filter on excess of heterozygosity</a></li>
-<li class="chapter" data-level="3.4" data-path="variant-filtering.html"><a href="variant-filtering.html#split-snps-and-indels"><i class="fa fa-check"></i><b>3.4</b> Split SNPs and INDELs</a></li>
+<li class="chapter" data-level="3.4" data-path="variant-filtering.html"><a href="variant-filtering.html#split-snps-and-indels"><i class="fa fa-check"></i><b>3.4</b> Split SNPs and InDels</a></li>
 <li class="chapter" data-level="3.5" data-path="variant-filtering.html"><a href="variant-filtering.html#discard-non-variant-positions"><i class="fa fa-check"></i><b>3.5</b> Discard non-variant positions</a></li>
 </ul></li>
 <li class="divider"></li>
@@ -184,21 +184,28 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
             <section class="normal" id="section-">
 <div id="variant-filtering" class="section level1 hasAnchor" number="3">
 <h1><span class="header-section-number">Chapter 3</span> Variant filtering<a href="variant-filtering.html#variant-filtering" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<p>This chapter contains bcftools commands to filter multi-sample VCF files to obtain high-quality SNPs and InDels. Commands were successfully run with bcftools v1.16.1.</p>
+<p>This chapter contains bcftools commands to filter multi-sample VCF files to obtain high-quality SNPs and InDels.</p>
+<p>Required software:</p>
+<ul>
+<li>bcftools</li>
+</ul>
+<p>Commands were successfully run with bcftools v1.16.1.</p>
 <div id="quality-filtering" class="section level2 hasAnchor" number="3.1">
 <h2><span class="header-section-number">3.1</span> Quality filtering<a href="variant-filtering.html#quality-filtering" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>Quality filtering is the first step to process. It includes depth filtering, genotype quality or any other filters based on quality metrics (QUAL, allele balance, etc). Loci that does not pass the thresholds must be set to missing. The allele count for each loci must then be updated <code>bcftools +fill-tags</code>.</p>
+<p>Quality filtering is the first step to process. It includes depth filtering, genotype quality or any other filters based on quality metrics (QUAL, allele balance, etc). Loci that do not pass the thresholds must be set to missing. The allele count for each loci must then be updated <code>bcftools +fill-tags</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="variant-filtering.html#cb1-1" tabindex="-1"></a><span class="co"># Depth filtering 10X</span></span>
-<span id="cb1-2"><a href="variant-filtering.html#cb1-2" tabindex="-1"></a><span class="ex">bcftools</span> +setGT in.vcf.gz <span class="at">--</span> <span class="at">-t</span> q <span class="at">-n</span> . <span class="at">-e</span> <span class="st">&#39;FMT/DP&gt;=10&#39;</span> <span class="kw">|</span> <span class="dt">\</span></span>
-<span id="cb1-3"><a href="variant-filtering.html#cb1-3" tabindex="-1"></a>  <span class="ex">bcftools</span> +fill-tags</span>
-<span id="cb1-4"><a href="variant-filtering.html#cb1-4" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="variant-filtering.html#cb1-5" tabindex="-1"></a><span class="co"># Genotype quality filtering 20</span></span>
-<span id="cb1-6"><a href="variant-filtering.html#cb1-6" tabindex="-1"></a><span class="ex">bcftools</span> +setGT in.vcf.gz <span class="at">--</span> <span class="at">-t</span> q <span class="at">-n</span> . <span class="at">-e</span> <span class="st">&#39;FMT/GQ&gt;=20&#39;</span> <span class="kw">|</span> <span class="dt">\</span></span>
-<span id="cb1-7"><a href="variant-filtering.html#cb1-7" tabindex="-1"></a>  <span class="ex">bcftools</span> +fill-tags</span></code></pre></div>
+<span id="cb1-2"><a href="variant-filtering.html#cb1-2" tabindex="-1"></a><span class="ex">bcftools</span> +setGT <span class="va">$PREFIX</span>.vcf.gz <span class="at">--</span> <span class="at">-t</span> q <span class="at">-n</span> . <span class="at">-e</span> <span class="st">&#39;FMT/DP&gt;=10&#39;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb1-3"><a href="variant-filtering.html#cb1-3" tabindex="-1"></a>  <span class="ex">bcftools</span> +fill-tags <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="variant-filtering.html#cb1-4" tabindex="-1"></a>  <span class="ex">bcftools</span> view <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.vcf.gz</span>
+<span id="cb1-5"><a href="variant-filtering.html#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="variant-filtering.html#cb1-6" tabindex="-1"></a><span class="co"># Genotype quality filtering 20</span></span>
+<span id="cb1-7"><a href="variant-filtering.html#cb1-7" tabindex="-1"></a><span class="ex">bcftools</span> +setGT <span class="va">$PREFIX</span>.DP10.vcf.gz <span class="at">--</span> <span class="at">-t</span> q <span class="at">-n</span> . <span class="at">-e</span> <span class="st">&#39;FMT/GQ&gt;=20&#39;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb1-8"><a href="variant-filtering.html#cb1-8" tabindex="-1"></a>  <span class="ex">bcftools</span> +fill-tags <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb1-9"><a href="variant-filtering.html#cb1-9" tabindex="-1"></a>  <span class="ex">bcftools</span> view <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.vcf.gz</span></code></pre></div>
 </div>
 <div id="missing-genotype-filtering" class="section level2 hasAnchor" number="3.2">
 <h2><span class="header-section-number">3.2</span> Missing genotype filtering<a href="variant-filtering.html#missing-genotype-filtering" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>Multiple filters can be done on missing genotypes. First we can filter out samples having less than 20% of informed loci. Fill-tags must be used since the number of samples changes.</p>
+<p>Multiple filters can be applied on missing genotypes. First we can filter out samples having less than 20% of informed loci. <code>+fill-tags</code> must be used since the number of samples changes.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="variant-filtering.html#cb2-1" tabindex="-1"></a><span class="co"># Get for each sample the number of loci with missing genotype</span></span>
 <span id="cb2-2"><a href="variant-filtering.html#cb2-2" tabindex="-1"></a><span class="ex">bcftools</span> stats <span class="at">-s</span> <span class="at">-</span> <span class="va">$PREFIX</span>.DP10.GQ20.vcf.gz <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> ^PSC <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f3,14</span> <span class="op">&gt;</span> <span class="va">$PREFIX</span>.DP10.GQ20.imiss</span>
 <span id="cb2-3"><a href="variant-filtering.html#cb2-3" tabindex="-1"></a><span class="co"># Get the total number of sites in the VCF</span></span>
@@ -207,31 +214,33 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-6"><a href="variant-filtering.html#cb2-6" tabindex="-1"></a><span class="fu">awk</span> <span class="at">-v</span> nSites=<span class="va">$nSites</span> <span class="st">&#39;{if ($2 / nSites &lt;= 0.2) print $1}&#39;</span> <span class="va">$PREFIX</span>.DP10.GQ20.imiss <span class="op">&gt;</span> Samples.Mind20</span>
 <span id="cb2-7"><a href="variant-filtering.html#cb2-7" tabindex="-1"></a><span class="co"># Filter samples</span></span>
 <span id="cb2-8"><a href="variant-filtering.html#cb2-8" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">--samples-file</span> Samples.Mind20 <span class="va">$PREFIX</span>.DP10.GQ20.vcf.gz <span class="kw">|</span> <span class="dt">\</span></span>
-<span id="cb2-9"><a href="variant-filtering.html#cb2-9" tabindex="-1"></a>    <span class="ex">bcftools</span> +fill-tags</span></code></pre></div>
+<span id="cb2-9"><a href="variant-filtering.html#cb2-9" tabindex="-1"></a>  <span class="ex">bcftools</span> +fill-tags <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb2-10"><a href="variant-filtering.html#cb2-10" tabindex="-1"></a>  <span class="ex">bcftools</span> view <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.vcf.gz</span></code></pre></div>
 <p>Then we can filter loci that are not informed for enough samples (ex: filter out loci that are informed for less than 99% of the samples).</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="variant-filtering.html#cb3-1" tabindex="-1"></a><span class="co"># Keep only sites with more than 99% of genotyped samples</span></span>
-<span id="cb3-2"><a href="variant-filtering.html#cb3-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-i</span> <span class="st">&#39;F_MISSING&lt;0.01&#39;</span></span></code></pre></div>
+<span id="cb3-2"><a href="variant-filtering.html#cb3-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-i</span> <span class="st">&#39;F_MISSING&lt;0.01&#39;</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.vcf.gz <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.vcf.gz</span></code></pre></div>
 </div>
 <div id="filter-on-excess-of-heterozygosity" class="section level2 hasAnchor" number="3.3">
 <h2><span class="header-section-number">3.3</span> Filter on excess of heterozygosity<a href="variant-filtering.html#filter-on-excess-of-heterozygosity" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p>Regions duplicated in some samples but in a single copy in the reference genome will often result in excess of heterozygosity. These regions can therefore be filtered with the ExcHet field, which tests for excess of heterozygosity and is calculated with fill-tags. This filter is usefull to avoid artificial increase in diversity caused by duplicated regions.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="variant-filtering.html#cb4-1" tabindex="-1"></a><span class="ex">bcftools</span> +fill-tags <span class="kw">|</span> <span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;ExcHet &lt; 0.99&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="variant-filtering.html#cb4-1" tabindex="-1"></a><span class="ex">bcftools</span> +fill-tags <span class="va">$PREFIX</span>.DP10.GQ20. <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb4-2"><a href="variant-filtering.html#cb4-2" tabindex="-1"></a>  <span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;ExcHet &lt; 0.99&#39;</span> <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz</span></code></pre></div>
 </div>
 <div id="split-snps-and-indels" class="section level2 hasAnchor" number="3.4">
-<h2><span class="header-section-number">3.4</span> Split SNPs and INDELs<a href="variant-filtering.html#split-snps-and-indels" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>In raw VCFs, SNPs and INDELs can be hard to discriminate because they can be located at the same loci (called mixed loci). Some raw VCFs also contains MNVs (= Multiple Nucleotide Variants), that can be broken down in multiple consecutive SNPs. This makes the dicrimination between SNPs and INDELs very complex. Since those mixed loci are hard to analyse, we filter them out. The raw VCF will be split in 2 VCF: one containing only strict SNPs (no INDEL present at these loci in the population), one containing only strict INDELs (no SNP present at these loci in the population). Non variant positions, referred to as <code>REF</code> type will be kept.</p>
-<p>For SNPs, all sites with <code>*</code> as genotype (= position is overlapping a deletion) or not <code>SNP</code> or <code>REF</code> as type will be excluded with the command <code>'ALT="*" || (type!="snp" &amp;&amp; type!="ref")'</code>. Same for INDELs, except <code>*</code> genotypes are kept: <code>'(type!="indel" &amp;&amp; type!="ref")'</code>.</p>
+<h2><span class="header-section-number">3.4</span> Split SNPs and InDels<a href="variant-filtering.html#split-snps-and-indels" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>In raw VCFs, SNPs and InDels can be hard to discriminate because they can be located at the same loci (called mixed loci). Some raw VCFs also contains MNVs (= Multiple Nucleotide Variants), that can be broken down in multiple consecutive SNPs. This makes the dicrimination between SNPs and InDels very complex. Since those mixed loci are hard to analyse, we filter them out. The raw VCF will be split in 2 VCF: one containing only strict SNPs (no InDel present at these loci in the population), one containing only strict InDels (no SNP present at these loci in the population). Non variant positions, referred to as <code>REF</code> type will be kept.</p>
+<p>For SNPs, all sites with <code>*</code> as genotype (= position is overlapping a deletion) or not <code>SNP</code> or <code>REF</code> as type will be excluded with the command <code>'ALT="*" || (type!="snp" &amp;&amp; type!="ref")'</code>. Same for InDels, except <code>*</code> genotypes are kept: <code>'(type!="indel" &amp;&amp; type!="ref")'</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="variant-filtering.html#cb5-1" tabindex="-1"></a><span class="co"># Keep only SNPs</span></span>
-<span id="cb5-2"><a href="variant-filtering.html#cb5-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;ALT=&quot;*&quot; || (type!=&quot;snp&quot; &amp;&amp; type!=&quot;ref&quot;)&#39;</span></span>
+<span id="cb5-2"><a href="variant-filtering.html#cb5-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;ALT=&quot;*&quot; || (type!=&quot;snp&quot; &amp;&amp; type!=&quot;ref&quot;)&#39;</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.vcf.gz</span>
 <span id="cb5-3"><a href="variant-filtering.html#cb5-3" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="variant-filtering.html#cb5-4" tabindex="-1"></a><span class="co"># Keep only INDELs</span></span>
-<span id="cb5-5"><a href="variant-filtering.html#cb5-5" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;(type!=&quot;indel&quot; &amp;&amp; type!=&quot;ref&quot;)&#39;</span></span></code></pre></div>
+<span id="cb5-4"><a href="variant-filtering.html#cb5-4" tabindex="-1"></a><span class="co"># Keep only InDels</span></span>
+<span id="cb5-5"><a href="variant-filtering.html#cb5-5" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">-e</span> <span class="st">&#39;(type!=&quot;indel&quot; &amp;&amp; type!=&quot;ref&quot;)&#39;</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.InDels.vcf.gz</span></code></pre></div>
 </div>
 <div id="discard-non-variant-positions" class="section level2 hasAnchor" number="3.5">
 <h2><span class="header-section-number">3.5</span> Discard non-variant positions<a href="variant-filtering.html#discard-non-variant-positions" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p>Non variant position can be filtered out based on allele count (AC - must be up to date using fill-tags).</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="variant-filtering.html#cb6-1" tabindex="-1"></a><span class="co"># Keep only variant positions</span></span>
-<span id="cb6-2"><a href="variant-filtering.html#cb6-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">--min-ac</span> 1</span></code></pre></div>
+<span id="cb6-2"><a href="variant-filtering.html#cb6-2" tabindex="-1"></a><span class="ex">bcftools</span> view <span class="at">--min-ac</span> 1 <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.vcf.gz <span class="at">-Oz</span> <span class="at">-o</span> <span class="va">$PREFIX</span>.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.Var.vcf.gz</span></code></pre></div>
 
 </div>
 </div>
