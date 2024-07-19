@@ -1,0 +1,47 @@
+# Joint genotyping
+
+This chapter explains how to jointly genotype all isolates, in order to generate a multisample VCF for the whole population. 
+
+Required software:
+
+-   gatk
+
+Commands were successfully run with gatk v4.5.0.0. 
+
+## Consolidate GVCFs
+
+> This step consists of consolidating the contents of GVCF files across multiple samples in order to improve scalability and speed the next step, joint genotyping. Note that this is NOT equivalent to the joint genotyping step; variants in the resulting merged GVCF cannot be considered to have been called jointly.
+
+```{bash, eval=F}
+# Loop on all GVCFs to create a variable that will be given as argument for the GenomicsDBImport function
+GVCF_FILES=""
+for GVCF in *.g.vcf.gz
+do
+  GVCF_FILES=${GVCF_FILES}"-V $GVCF "
+done
+
+# Consolidate GVCFs
+gatk GenomicsDBImport --batch-size 200 --genomicsdb-workspace-path Prefix -L reference.bed $GVCF_FILES
+```
+
+## Joint-Call cohort
+
+> At this step, we gather all the per-sample GVCFs (or combined GVCFs if we are working with large numbers of samples) and pass them all together to the joint genotyping tool, GenotypeGVCFs. This produces a set of joint-called SNP and indel calls ready for filtering. This cohort-wide analysis empowers sensitive detection of variants even at difficult sites, and produces a squared-off matrix of genotypes that provides information about all sites of interest in all samples considered, which is important for many downstream analyses.
+
+As some tools require to have VCF files with all positions (even non-variant positions), the `--include-non-variant-sites` option is used. Non-variant position can be subsequently discarded to have a multi-sample VCF less heavy. 
+
+```{bash, eval=F}
+gatk GenotypeGVCFs --include-non-variant-sites -R reference.fasta -V gendb://Prefix -O Prefix.vcf.gz
+```
+
+As for the variant calling, this step can be run per chromosome and VCFs can be subsequently merged. 
+
+```{bash, eval=F}
+gatk GenotypeGVCFs --intervals chromosome1 --include-non-variant-sites -R reference.fasta -V gendb://Prefix -O Prefix.chromosome1.vcf.gz
+gatk GenotypeGVCFs --intervals chromosome2 --include-non-variant-sites -R reference.fasta -V gendb://Prefix -O Prefix.chromosome2.vcf.gz
+gatk GenotypeGVCFs --intervals chromosome3 --include-non-variant-sites -R reference.fasta -V gendb://Prefix -O Prefix.chromosome3.vcf.gz
+...
+
+gatk MergeVcfs -I Prefix.chromosome1.vcf.gz -I Prefix.chromosome2.vcf.gz -I Prefix.chromosome3.vcf.gz ... -O Prefix.vcf.gz
+```
+

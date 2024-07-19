@@ -1,0 +1,84 @@
+# Variant filtering
+
+This chapter contains bcftools commands to filter multi-sample VCF files to obtain high-quality SNPs and InDels. 
+
+Required software:
+
+-   bcftools
+
+Commands were successfully run with bcftools v1.16.1. 
+
+
+## Quality filtering
+
+Quality filtering is the first step to process. It includes depth filtering, genotype quality or any other filters based on quality metrics (QUAL, allele balance, etc). Loci that do not pass the thresholds must be set to missing. The allele count for each loci must then be updated `bcftools +fill-tags`.
+
+```{bash, eval=F}
+# Depth filtering 10X
+bcftools +setGT $PREFIX.vcf.gz -- -t q -n . -e 'FMT/DP>=10' | \
+  bcftools +fill-tags | \
+  bcftools view -Oz -o $PREFIX.DP10.vcf.gz
+
+# Genotype quality filtering 20
+bcftools +setGT $PREFIX.DP10.vcf.gz -- -t q -n . -e 'FMT/GQ>=20' | \
+  bcftools +fill-tags | \
+  bcftools view -Oz -o $PREFIX.DP10.GQ20.vcf.gz
+```
+
+
+## Missing genotype filtering
+
+Multiple filters can be applied on missing genotypes. First we can filter out samples having less than 20% of informed loci. `+fill-tags` must be used since the number of samples changes.
+
+```{bash, eval=F}
+# Get for each sample the number of loci with missing genotype
+bcftools stats -s - $PREFIX.DP10.GQ20.vcf.gz | grep -E ^PSC | cut -f3,14 > $PREFIX.DP10.GQ20.imiss
+# Get the total number of sites in the VCF
+nSites=$(bcftools +counts $PREFIX.DP10.GQ20.vcf.gz | grep "Number of sites" | rev | cut -d " " -f 1 | rev)
+# List samples with less than 20% missing genotypes
+awk -v nSites=$nSites '{if ($2 / nSites <= 0.2) print $1}' $PREFIX.DP10.GQ20.imiss > Samples.Mind20
+# Filter samples
+bcftools view --samples-file Samples.Mind20 $PREFIX.DP10.GQ20.vcf.gz | \
+  bcftools +fill-tags | \
+  bcftools view -Oz -o $PREFIX.DP10.GQ20.Mind20.vcf.gz
+```
+
+Then we can filter loci that are not informed for enough samples (ex: filter out loci that are informed for less than 99% of the samples).
+
+```{bash, eval=F}
+# Keep only sites with more than 99% of genotyped samples
+bcftools view -i 'F_MISSING<0.01' $PREFIX.DP10.GQ20.Mind20.vcf.gz -Oz -o $PREFIX.DP10.GQ20.Mind20.99pNonMiss.vcf.gz
+```
+
+## Filter on excess of heterozygosity
+
+Regions duplicated in some samples but in a single copy in the reference genome will often result in excess of heterozygosity. These regions can therefore be filtered with the ExcHet field, which tests for excess of heterozygosity and is calculated with fill-tags. This filter is usefull to avoid artificial increase in diversity caused by duplicated regions.
+
+```{bash, eval=F}
+bcftools +fill-tags $PREFIX.DP10.GQ20. | \
+  bcftools view -e 'ExcHet < 0.99' -Oz -o $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz
+```
+
+## Split SNPs and InDels
+
+In raw VCFs, SNPs and InDels can be hard to discriminate because they can be located at the same loci (called mixed loci). Some raw VCFs also contains MNVs (= Multiple Nucleotide Variants), that can be broken down in multiple consecutive SNPs. This makes the dicrimination between SNPs and InDels very complex. Since those mixed loci are hard to analyse, we filter them out. The raw VCF will be split in 2 VCF: one containing only strict SNPs (no InDel present at these loci in the population), one containing only strict InDels (no SNP present at these loci in the population). Non variant positions, referred to as `REF` type will be kept.
+
+For SNPs, all sites with `*` as genotype (= position is overlapping a deletion) or not `SNP` or `REF` as type will be excluded with the command `'ALT="*" || (type!="snp" && type!="ref")'`. Same for InDels, except `*` genotypes are kept: `'(type!="indel" && type!="ref")'`.
+
+```{bash, eval=F}
+# Keep only SNPs
+bcftools view -e 'ALT="*" || (type!="snp" && type!="ref")' $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz -Oz -o $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.vcf.gz
+
+# Keep only InDels
+bcftools view -e '(type!="indel" && type!="ref")' $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.vcf.gz -Oz -o $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.InDels.vcf.gz
+```
+
+## Discard non-variant positions
+
+Non variant position can be filtered out based on allele count (AC - must be up to date using fill-tags). 
+
+```{bash, eval=F}
+# Keep only variant positions
+bcftools view --min-ac 1 $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.vcf.gz -Oz -o $PREFIX.DP10.GQ20.Mind20.99pNonMiss.ExcHet99.SNPs.Var.vcf.gz
+```
+
